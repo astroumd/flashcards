@@ -180,7 +180,6 @@ def print_help():
     print(help_message)
 
 
-
 if __name__ == "__main__":
     help_flag = '-h' in sys.argv or '--help' in sys.argv
     quiz_mode = '-q' in sys.argv or '--quiz' in sys.argv
