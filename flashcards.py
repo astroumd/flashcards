@@ -9,17 +9,21 @@ Code constructed from a dialog with ChatGPT 4.
 
 Requirements:
     1. Python 3.x for running the script.
-    2. Python packages tkinter and PIL installed.
+    2. Python packages tk and pillow installed.
 
 Usage notes:
-    1. Prepare a folder with PNG photos. Each photo should have a unique name.
-    2. Currently the photo name is assumed to be of the form Last,First.png.
+    1. Prepare a folder with image photos. JPG and PNG are supported formats.
+    2. Currently the photo names are assumed to be of the form Last,First.png.
     3. Invoke the script either in the folder or by specifying the folder path
-       as the first argument.
+       as a command-line argument.
     4. Choose from 2 modes: flashcard (default) or 4-choice quiz (-q option).
+    5. Optionally include a positive floating-point image scale factor.
 
 Known issues:
     1. Sometimes the windows buttons don't work. Just restart to fix.
+    2. If the user chooses too large a scale factor, widget buttons may not be
+       visible due to differences in window managers. Adjust the value of
+       estimated_widget_height in the load_random_photo() method to fix.
 """
 
 import tkinter as tk
@@ -77,29 +81,61 @@ class FlashcardAppUpdated:
         self.load_random_photo()
 
     def load_photo_paths(self):
+        # Check if folder exists
         if not os.path.isdir(self.photo_folder):
             print(f"Error: The specified folder '{self.photo_folder}' "
                   "does not exist.")
             sys.exit(1)
-        # Include files with .jpg, .jpeg, .JPG, .JPEG, .png, and .PNG extensions
-        photo_paths = [
-            os.path.join(self.photo_folder, f) 
-            for f in os.listdir(self.photo_folder)
-            if f.lower().endswith(('.jpg', '.jpeg', '.png'))
-            ]
-        if self.quiz_mode and len(photo_paths) < 4:
-            print("Error: There are not enough image files in the folder "
-                  "for quiz mode.")
+    
+        # Initialize list for valid photo paths
+        valid_photo_paths = []
+    
+        for f in os.listdir(self.photo_folder):
+            if f.lower().endswith(('.jpg', '.jpeg', '.png')):
+                # Check if filename format is correct
+                if (f.count(',') == 1 and 
+                    len(f.split(',')[0]) > 0 and 
+                    len(f.split(',')[1].split('.')[0]) > 0):
+                    valid_photo_paths.append(
+                        os.path.join(self.photo_folder, f)
+                        )
+                else:
+                    print(f"Warning: File '{f}' ignored due to incorrect "
+                          "format.")
+    
+        if len(valid_photo_paths) < 4:
+            print("Error: There are not enough valid image files in the "
+                  "folder for quiz mode.")
             sys.exit(1)
-        return photo_paths
+    
+        return valid_photo_paths
 
     def load_random_photo(self):
         self.current_photo = random.choice(self.photo_paths)
         image = Image.open(self.current_photo)
 
-        # Scale the image size
-        scaled_size = tuple(int(scale * x) for x in image.size
-                            for scale in (self.scale_factor,))
+        # Get screen width and height
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+
+        # Estimate the height of buttons and other widgets
+        estimated_widget_height = 250  # Adjust this based on your layout
+
+        # Calculate the maximum available height for the image
+        max_image_height = screen_height - estimated_widget_height
+
+        # Calculate scaled image size
+        original_size = image.size
+        scaled_size = tuple(int(self.scale_factor * x) for x in original_size)
+
+        # Adjust scale factor if scaled image exceeds screen size
+        if scaled_size[0] > screen_width or scaled_size[1] > max_image_height:
+            scale_width = screen_width / original_size[0]
+            scale_height = max_image_height / original_size[1]
+            new_scale_factor = min(scale_width, scale_height)
+            scaled_size = tuple(int(new_scale_factor * x)
+                                for x in original_size)
+
         image = image.resize(scaled_size)
 
         photo = ImageTk.PhotoImage(image)
@@ -193,7 +229,7 @@ def print_help():
 
     Supported file types:
       JPEG (extensions .jpg or .jpeg) or PNG (extension .png)
-      (extensions not case sensitive)
+      (extensions are not case sensitive)
     """
     print(help_message)
 
