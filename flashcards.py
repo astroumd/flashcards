@@ -30,10 +30,11 @@ import sys
 
 
 class FlashcardAppUpdated:
-    def __init__(self, photo_folder, quiz_mode=False):
+    def __init__(self, photo_folder, quiz_mode=False, scale_factor=1.0):
         self.photo_folder = photo_folder
         self.current_photo = None
         self.quiz_mode = quiz_mode
+        self.scale_factor = scale_factor
         self.correct_name = ""
 
         self.photo_paths = self.load_photo_paths()
@@ -95,7 +96,12 @@ class FlashcardAppUpdated:
     def load_random_photo(self):
         self.current_photo = random.choice(self.photo_paths)
         image = Image.open(self.current_photo)
-        image.thumbnail((500, 500))
+
+        # Scale the image size
+        scaled_size = tuple(int(scale * x) for x in image.size
+                            for scale in (self.scale_factor,))
+        image = image.resize(scaled_size)
+
         photo = ImageTk.PhotoImage(image)
 
         self.image_label.config(image=photo)
@@ -170,14 +176,21 @@ class FlashcardAppUpdated:
 
 def print_help():
     help_message = """
-    Usage: python script_name.py [options]
+    Usage: python script_name.py [options] [scale_factor] [photo_folder_path]
 
     Options:
       -h, --help          Show this help message and exit.
       -q, --quiz          Enable quiz mode. Requires 4 photos minimum.
-      [photo_folder_path] Specify the path to the photo folder. 
-                          If not specified, defaults to the current directory.
-    
+
+    scale_factor:
+      A positive floating-point number to scale the images. 
+      For example, 2.0 doubles the size of the images, while 0.5 halves it.
+      If not specified, defaults to 1.0 (no scaling).
+
+    photo_folder_path:
+      Specify the path to the photo folder. 
+      If not specified, defaults to the current directory.
+
     Supported file types:
       JPEG (extensions .jpg or .jpeg) or PNG (extension .png)
       (extensions not case sensitive)
@@ -189,13 +202,33 @@ if __name__ == "__main__":
     help_flag = '-h' in sys.argv or '--help' in sys.argv
     quiz_mode = '-q' in sys.argv or '--quiz' in sys.argv
 
+    # Default values
+    scale_factor = 1.0
+    photo_folder = None
+
+    # Process command-line arguments
     args = [arg for arg in sys.argv[1:] if not arg.startswith('-')]
+    for arg in args:
+        if photo_folder is None:
+            try:
+                # Attempt to interpret the argument as a scale factor
+                scale = float(arg)
+                if scale > 0:
+                    scale_factor = scale
+                else:
+                    raise ValueError("Scale factor must be positive.")
+            except ValueError:
+                # If not a scale factor, treat it as the photo folder path
+                photo_folder = arg
 
     if help_flag:
         print_help()
         sys.exit(0)
 
-    photo_folder = args[0] if args else os.getcwd()
+    # If no photo folder path is provided, use the current directory
+    if photo_folder is None:
+        photo_folder = os.getcwd()
 
-    app_updated = FlashcardAppUpdated(photo_folder, quiz_mode=quiz_mode)
+    app_updated = FlashcardAppUpdated(photo_folder, quiz_mode=quiz_mode,
+                                      scale_factor=scale_factor)
     app_updated.run()
