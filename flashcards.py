@@ -80,13 +80,14 @@ class FlashcardAppUpdated:
             print(f"Error: The specified folder '{self.photo_folder}' "
                   "does not exist.")
             sys.exit(1)
+        # Include files with .jpg, .jpeg, .JPG, .JPEG, .png, and .PNG extensions
         photo_paths = [
-            os.path.join(self.photo_folder, f)
+            os.path.join(self.photo_folder, f) 
             for f in os.listdir(self.photo_folder)
-            if f.endswith('.png')
+            if f.lower().endswith(('.jpg', '.jpeg', '.png'))
             ]
         if self.quiz_mode and len(photo_paths) < 4:
-            print("Error: There are not enough PNG files in the folder "
+            print("Error: There are not enough image files in the folder "
                   "for quiz mode.")
             sys.exit(1)
         return photo_paths
@@ -176,6 +177,10 @@ def print_help():
       -q, --quiz          Enable quiz mode. Requires 4 photos minimum.
       [photo_folder_path] Specify the path to the photo folder. 
                           If not specified, defaults to the current directory.
+    
+    Supported file types:
+      JPEG (extensions .jpg or .jpeg) or PNG (extension .png)
+      (extensions not case sensitive)
     """
     print(help_message)
 
