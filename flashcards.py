@@ -26,8 +26,20 @@ Known issues:
        estimated_widget_height in the load_random_photo() method to fix.
 """
 
-import tkinter as tk
-from PIL import Image, ImageTk
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    print("The required package 'pillow' is not installed.")
+    print("Please install it using pip: 'pip install pillow' or equivalent.")
+    exit(1)
+    
+try:
+    import tkinter as tk
+except ImportError:
+    print("The required package 'tkinter' is not installed.")
+    print("Please install it using pip: 'pip install tk' or equivalent.")
+    exit(1)
+
 import os
 import random
 import sys
